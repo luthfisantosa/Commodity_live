@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Harga Crude Oil Live (IDR)</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #f9f9f9;
+      padding: 30px;
+    }
+    h2 {
+      margin-bottom: 20px;
+    }
+    #chartContainer {
+      width: 80%;
+      margin: auto;
+    }
+    #status {
+      margin: 10px;
+      font-size: 14px;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <h2>Harga Live Crude Oil (Rp)</h2>
+  <div id="status">⏳ Mengambil data...</div>
+  <div id="chartContainer">
+    <canvas id="lineChart"></canvas>
+  </div>
+
+  <script>
+    const ctx = document.getElementById('lineChart').getContext('2d');
+    const API_KEY = "1uJVdDfwabtrO+OjWyRHhA==hUYLyqpcRg8JyLHC"; // ganti dengan API key kamu
+    const USD_TO_IDR = 15500; // kurs asumsi
+
+    let labels = [];
+    let dataHarga = [];
+
+    const lineChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Harga Crude Oil (Rp per barrel)',
+          data: dataHarga,
+          borderColor: 'rgba(54, 162, 235, 1)',
+          backgroundColor: 'rgba(54, 162, 235, 0.2)',
+          borderWidth: 2,
+          fill: true,
+          tension: 0.3
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          x: {
+            title: { display: true, text: 'Waktu' }
+          },
+          y: {
+            title: { display: true, text: 'Harga (Rp)' }
+          }
+        }
+      }
+    });
+
+    async function fetchData() {
+      try {
+        const response = await fetch("https://api.api-ninjas.com/v1/commodityprice?name=crude%20oil", {
+          headers: { "X-Api-Key": API_KEY }
+        });
+
+        const data = await response.json();
+        console.log("Response API:", data);
+
+        // cek apakah ada error
+        if (data.error) {
+          document.getElementById("status").innerText = "❌ Error: " + data.error;
+          return;
+        }
+
+        if (data.price) {
+          const hargaUSD = data.price;
+          const hargaIDR = hargaUSD * USD_TO_IDR;
+
+          const now = new Date();
+          const waktu = now.toLocaleTimeString();
+
+          labels.push(waktu);
+          dataHarga.push(hargaIDR.toFixed(0));
+
+          if (labels.length > 10) {
+            labels.shift();
+            dataHarga.shift();
+          }
+
+          lineChart.update();
+          document.getElementById("status").innerText = 
+            `✅ Update ${waktu} | USD ${hargaUSD} → Rp ${hargaIDR.toLocaleString()}`;
+        } else {
+          document.getElementById("status").innerText = "⚠️ Data harga tidak ditemukan!";
+        }
+      } catch (err) {
+        console.error("Fetch gagal:", err);
+        document.getElementById("status").innerText = "❌ Gagal ambil data API";
+      }
+    }
+
+    fetchData();
+    setInterval(fetchData, 5000);
+  </script>
+</body>
+</html>
