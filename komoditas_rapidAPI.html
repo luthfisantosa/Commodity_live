@@ -51,4 +51,546 @@
       align-items:center;
     }
     .logo{
-      wi
+      width:46px;
+      height:46px;
+      border-radius:10px;
+      background:linear-gradient(135deg,var(--accent),#60a5fa);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:700;
+      color:#032023;
+      box-shadow: 0 6px 18px rgba(6,182,212,0.12);
+    }
+    h1{ font-size:1.05rem; margin:0; }
+    p.sub{ margin:0; font-size:0.82rem; color:var(--muted); }
+
+    .controls{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+
+    .btn-group{
+      display:flex;
+      gap:8px;
+      background:var(--glass);
+      padding:6px;
+      border-radius:12px;
+    }
+    .btn{
+      border:0;
+      padding:8px 12px;
+      border-radius:8px;
+      background:transparent;
+      color:var(--muted);
+      cursor:pointer;
+      font-weight:600;
+      min-width:64px;
+      transition: all .18s ease;
+    }
+    .btn:hover{ transform:translateY(-2px); color:#fff; }
+    .btn.active{
+      background: linear-gradient(90deg, rgba(6,182,212,0.12), rgba(96,165,250,0.08));
+      color:var(--accent);
+      box-shadow: 0 6px 16px rgba(6,182,212,0.06);
+    }
+
+    .panels{
+      display:grid;
+      grid-template-columns: 1fr 260px;
+      gap:14px;
+      margin-top:12px;
+    }
+
+    .card{
+      background:var(--card);
+      border-radius:12px;
+      padding:14px;
+      box-sizing:border-box;
+      border: 1px solid rgba(255,255,255,0.02);
+    }
+
+    .small{
+      font-size:0.86rem;
+      color:var(--muted);
+    }
+
+    .stats{
+      display:flex;
+      gap:12px;
+      margin-bottom:10px;
+      align-items:center;
+    }
+    .stat{
+      flex:1;
+      background: rgba(255,255,255,0.01);
+      padding:10px;
+      border-radius:10px;
+      text-align:center;
+    }
+    .stat .num{ font-weight:700; font-size:1.05rem; }
+    .stat .lbl{ font-size:0.78rem; color:var(--muted); }
+
+    canvas{ width:100% !important; height:360px !important; }
+
+    footer.note{
+      margin-top:12px;
+      font-size:0.82rem;
+      color:var(--muted);
+      text-align:right;
+    }
+
+    /* responsive */
+    @media (max-width:920px){
+      .panels{ grid-template-columns: 1fr; }
+      canvas{ height:300px !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container" role="application">
+    <header>
+      <div class="title">
+        <div class="logo">C</div>
+        <div>
+          <h1>Commodity Live Dashboard — Konversi ke IDR</h1>
+          <p class="sub">Sumber data: commodity-prices-api (RapidAPI). Kurs diambil waktu-nyata dari exchangerate.host</p>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="btn-group" role="tablist" aria-label="Range selector">
+          <button class="btn active" data-range="live">Live</button>
+          <button class="btn" data-range="1d">1D</button>
+          <button class="btn" data-range="1w">1W</button>
+          <button class="btn" data-range="1m">1M</button>
+          <button class="btn" data-range="1y">1Y</button>
+          <button class="btn" data-range="5y">5Y</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="panels">
+      <div class="card">
+        <div class="stats" aria-hidden="true">
+          <div class="stat">
+            <div class="num" id="lastPrice">--</div>
+            <div class="lbl">Harga Terakhir (IDR)</div>
+          </div>
+          <div class="stat">
+            <div class="num" id="changePct">--</div>
+            <div class="lbl">Perubahan (estimasi)</div>
+          </div>
+          <div class="stat">
+            <div class="num" id="asOf">--</div>
+            <div class="lbl">Waktu</div>
+          </div>
+        </div>
+
+        <canvas id="chart"></canvas>
+
+        <footer class="note">Perhatian: sejarah data bergantung pada penyedia API. Jika tidak tersedia, grafik menampilkan data sintetis berbasis harga terakhir.</footer>
+      </div>
+
+      <aside class="card">
+        <div>
+          <h3 style="margin:0 0 8px 0;">Pengaturan</h3>
+          <p class="small">Komoditas (kode): <code id="codeLabel">aluminyum,altin-kg-lira</code></p>
+          <p class="small">RapidAPI host: <code>commodity-prices-api.p.rapidapi.com</code></p>
+          <hr style="border:0; height:1px; background:rgba(255,255,255,0.03); margin:12px 0;">
+          <div style="display:flex; gap:8px; align-items:center;">
+            <label class="small">Live interval (detik)</label>
+            <input id="liveInterval" type="number" min="1" value="5" style="width:70px; padding:6px; border-radius:8px; background:transparent; color:inherit; border:1px solid rgba(255,255,255,0.04);">
+          </div>
+
+          <div style="margin-top:12px;">
+            <button id="refreshBtn" class="btn" style="width:100%;">Refresh sekarang</button>
+          </div>
+
+          <hr style="border:0; height:1px; background:rgba(255,255,255,0.03); margin:12px 0;">
+          <p class="small" style="color:var(--muted);">Catatan teknis: script akan mencoba membaca harga terakhir dari response API. Jika struktur response berbeda, lihat console untuk debug.</p>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+<script>
+/*
+  Simple dashboard:
+  - Fetch commodity API using the settings you provided.
+  - Fetch exchange rate USD -> IDR (runtime) from exchangerate.host
+  - Convert commodity price to IDR and plot as time series.
+  - If historical data is missing, create synthetic series for chosen range.
+*/
+
+const RAPIDAPI_KEY = 'b8483ce4fbmsh6b85dbc539944abp1b11d4jsn43c8cf2767b6';
+const RAPIDAPI_HOST = 'commodity-prices-api.p.rapidapi.com';
+// the endpoint the user provided (kept as-is)
+const COMMODITY_URL = 'https://commodity-prices-api.p.rapidapi.com/economy/emtia/exchange-rate?code=aluminyum%2Caltin-kg-lira';
+
+let usdToIdr = null;
+let chart = null;
+let mode = 'live';
+let liveTimer = null;
+let lastKnownPriceUSD = null;
+let lastKnownTime = null;
+
+// utility: format IDR
+const idrFmt = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 });
+
+// DOM
+const lastPriceEl = document.getElementById('lastPrice');
+const changePctEl = document.getElementById('changePct');
+const asOfEl = document.getElementById('asOf');
+const refreshBtn = document.getElementById('refreshBtn');
+const liveIntervalInput = document.getElementById('liveInterval');
+const codeLabel = document.getElementById('codeLabel');
+
+// range buttons
+document.querySelectorAll('.btn-group .btn').forEach(btn=>{
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.btn-group .btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    mode = btn.dataset.range;
+    stopLive();
+    loadForMode(mode);
+  });
+});
+
+// refresh
+refreshBtn.addEventListener('click', ()=> loadForMode(mode));
+
+function startLive(){
+  stopLive();
+  const sec = Math.max(1, parseInt(liveIntervalInput.value)||5);
+  liveTimer = setInterval(()=> {
+    fetchLatestAndAppend();
+  }, sec*1000);
+}
+
+function stopLive(){
+  if(liveTimer){ clearInterval(liveTimer); liveTimer = null; }
+}
+
+// Chart.js setup
+function createChart(labels=[], data=[]){
+  const ctx = document.getElementById('chart').getContext('2d');
+  if(chart) chart.destroy();
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Harga (IDR)',
+        data: data,
+        tension: 0.2,
+        borderWidth: 2,
+        pointRadius: 0,
+        fill: true,
+        backgroundColor: 'rgba(6,182,212,0.06)',
+        borderColor: 'rgba(6,182,212,0.9)',
+      }]
+    },
+    options: {
+      interaction: {mode:'nearest', intersect:false},
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => idrFmt.format(ctx.parsed.y)
+          }
+        }
+      },
+      scales: {
+        x: {
+          type: 'time',
+          time: { tooltipFormat: 'yyyy-MM-dd HH:mm', displayFormats: {minute:'HH:mm', hour:'MMM dd', day:'MMM dd', month:'MMM yyyy', year:'yyyy'}},
+          ticks: { color: '#bcd' }
+        },
+        y: {
+          ticks: { callback: v => formatCompactIDR(v), color:'#bcd' },
+          beginAtZero: false
+        }
+      },
+      maintainAspectRatio: false,
+      responsive: true
+    }
+  });
+}
+function formatCompactIDR(v){
+  // small compact formatting for axis
+  if (v >= 1e12) return (v/1e12).toFixed(1)+'T';
+  if (v >= 1e9) return (v/1e9).toFixed(1)+'B';
+  if (v >= 1e6) return (v/1e6).toFixed(1)+'Jt';
+  if (v >= 1e3) return (v/1e3).toFixed(1)+'K';
+  return Math.round(v);
+}
+
+// Fetch USD -> IDR rate at runtime
+async function fetchUSDToIDR(){
+  try{
+    // exchangerate.host is a free endpoint; it returns JSON with rates.
+    const res = await fetch('https://api.exchangerate.host/latest?base=USD&symbols=IDR');
+    const j = await res.json();
+    if(j && j.rates && j.rates.IDR){
+      usdToIdr = j.rates.IDR;
+      return usdToIdr;
+    }
+  }catch(e){
+    console.warn('Gagal ambil kurs USD->IDR', e);
+  }
+  // fallback: approximate fixed rate (inform user in console)
+  usdToIdr = 16000; // *fallback value* — dapatkan kurs aktual di browser runtime jika ada
+  console.warn('Menggunakan fallback USD->IDR =', usdToIdr);
+  return usdToIdr;
+}
+
+// Fetch latest commodity data from provided RapidAPI endpoint
+async function fetchCommodityLatest(){
+  try{
+    const resp = await fetch(COMMODITY_URL, {
+      method: 'GET',
+      headers: {
+        'x-rapidapi-key': RAPIDAPI_KEY,
+        'x-rapidapi-host': RAPIDAPI_HOST
+      }
+    });
+    const j = await resp.json();
+    console.log('commodity response', j);
+    // --- The shape of response can vary depending on API. Attempt to find a sensible price value:
+    // Try common fields:
+    //  - j.price, j.value, j.data.price, j.data.value, j.items[0].price, etc.
+    // Also try to return an object: {priceUSD, timestamp, raw}
+    let priceUSD = null;
+    let timestamp = new Date();
+
+    // heuristics:
+    if(j == null) throw new Error('Empty response');
+    // If response contains array of items
+    if(Array.isArray(j) && j.length){
+      // maybe first element has 'price' or 'value'
+      const it = j[0];
+      if(it.price) priceUSD = Number(it.price);
+      else if(it.value) priceUSD = Number(it.value);
+      else if(it.last) priceUSD = Number(it.last);
+      if(it.time || it.timestamp) timestamp = new Date(it.time || it.timestamp);
+    }
+    if(typeof j === 'object'){
+      // nested shapes
+      if(j.price) priceUSD = Number(j.price);
+      else if(j.value) priceUSD = Number(j.value);
+      else if(j.data && j.data.price) priceUSD = Number(j.data.price);
+      else if(j.data && j.data.value) priceUSD = Number(j.data.value);
+      else if(j.rate) priceUSD = Number(j.rate);
+      // maybe it's keyed by commodity code
+      for(const k of Object.keys(j)){
+        const v = j[k];
+        if(v && typeof v === 'object' && (v.price || v.value || v.last)){
+          priceUSD = Number(v.price || v.value || v.last);
+          if(v.time) timestamp = new Date(v.time);
+          break;
+        }
+      }
+    }
+
+    // If still null, try to detect numeric tokens anywhere:
+    if(priceUSD == null){
+      // try to search for first numeric in JSON (best-effort)
+      const flattened = JSON.stringify(j);
+      const m = flattened.match(/[\d]+\.[\d]+/);
+      if(m) priceUSD = Number(m[0]);
+    }
+
+    if(priceUSD == null || isNaN(priceUSD)) {
+      throw new Error('Tidak menemukan harga numerik pada response API. Lihat console untuk response lengkap.');
+    }
+
+    return { priceUSD, timestamp: timestamp.toISOString(), raw: j };
+  }catch(err){
+    console.error('fetchCommodityLatest error', err);
+    throw err;
+  }
+}
+
+// If API does NOT provide historical series, this helper generates synthetic series for plotting.
+// It generates `points` back from now using a small random walk around lastPrice.
+function synthesizeSeries(lastPrice, points, timeframe){
+  // timeframe: approximate scale factor used to set volatility.
+  const out = [];
+  const now = Date.now();
+  const stepMs = Math.max(1000, Math.floor( (365*24*3600*1000) / points )); // rough
+  // choose volatility based on timeframe
+  let vol = 0.005; // default small
+  if(timeframe === '1d') vol = 0.004;
+  if(timeframe === '1w') vol = 0.006;
+  if(timeframe === '1m') vol = 0.01;
+  if(timeframe === '1y') vol = 0.03;
+  if(timeframe === '5y') vol = 0.06;
+
+  let price = lastPrice;
+  // generate backwards so earliest is first
+  for(let i = points-1; i >= 0; i--){
+    // apply a random step
+    const rnd = (Math.random() - 0.5) * 2 * vol;
+    price = price / (1 + rnd); // invert because we're going backwards
+    const t = new Date(now - i * stepMs);
+    out.push({ t: t.toISOString(), v: price });
+  }
+  return out;
+}
+
+// Build arrays for Chart.js from series [{t, v}]
+function seriesToChart(series){
+  const labels = series.map(s => s.t);
+  const data = series.map(s => s.v);
+  return { labels, data };
+}
+
+// Append a new point (for live)
+function appendPointToChart(timeISO, valueIDR){
+  if(!chart) return;
+  chart.data.labels.push(timeISO);
+  chart.data.datasets[0].data.push(valueIDR);
+  // keep a reasonable number of points
+  if(chart.data.labels.length > 1000){
+    chart.data.labels.shift();
+    chart.data.datasets[0].data.shift();
+  }
+  chart.update('none');
+}
+
+// Load data according to selected mode
+async function loadForMode(modeSelected){
+  try{
+    // ensure we have exchange rate
+    await fetchUSDToIDR();
+
+    // fetch latest
+    const latest = await fetchCommodityLatest();
+    lastKnownPriceUSD = latest.priceUSD;
+    lastKnownTime = latest.timestamp;
+    codeLabel.textContent = 'aluminyum,altin-kg-lira'; // reflect provided code
+
+    // convert to IDR
+    const lastIDR = Math.round(lastKnownPriceUSD * usdToIdr);
+    lastPriceEl.textContent = idrFmt.format(lastIDR);
+    asOfEl.textContent = new Date(lastKnownTime).toLocaleString('id-ID');
+
+    // choose points count roughly by mode
+    let points = 50;
+    if(modeSelected === 'live'){ points = 60; }
+    if(modeSelected === '1d'){ points = 96; }   // ~15-min bars
+    if(modeSelected === '1w'){ points = 140; }
+    if(modeSelected === '1m'){ points = 200; }
+    if(modeSelected === '1y'){ points = 300; }
+    if(modeSelected === '5y'){ points = 400; }
+
+    // Attempt: some commodity APIs provide history endpoints. Here we try the same base endpoint with a 'range' param.
+    // If the API doesn't support it or returns no history, we'll fallback to synthesizing a series.
+    let series = null;
+    try{
+      // try to request a "history" version (best-effort); if it fails or contains no usable series, we fallback.
+      const historyUrl = COMMODITY_URL + '&history=true';
+      const resp = await fetch(historyUrl, {
+        method: 'GET',
+        headers: {
+          'x-rapidapi-key': RAPIDAPI_KEY,
+          'x-rapidapi-host': RAPIDAPI_HOST
+        }
+      });
+      const j = await resp.json();
+      console.log('attempted history response', j);
+
+      // try to parse possible structures:
+      // look for arrays of points: j.history, j.data.history, j.prices, j.series
+      let candidate = null;
+      if (j){
+        if(Array.isArray(j.history)) candidate = j.history;
+        else if(j.data && Array.isArray(j.data.history)) candidate = j.data.history;
+        else if(Array.isArray(j.prices)) candidate = j.prices;
+        else if(Array.isArray(j.series)) candidate = j.series;
+        // sometimes nested object where keys are timestamps:
+        else if(typeof j === 'object'){
+          // find first array-of-objects with {time,value}
+          for(const k of Object.keys(j)){
+            if(Array.isArray(j[k]) && j[k].length && (j[k][0].time || j[k][0].timestamp || j[k][0].price || j[k][0].value)){
+              candidate = j[k];
+              break;
+            }
+          }
+        }
+      }
+
+      if(candidate && candidate.length > 1){
+        // normalize to {t, v}
+        const norm = candidate.map(it=>{
+          const t = it.time || it.timestamp || it.date || it.t || it[0] || new Date().toISOString();
+          const v = it.price || it.value || it.last || it.rate || it[1] || null;
+          return { t: new Date(t).toISOString(), v: Number(v) };
+        }).filter(x => !isNaN(x.v));
+        if(norm.length >= 2) series = norm;
+      }
+    }catch(e){
+      console.warn('history fetch failed or no usable history', e);
+    }
+
+    if(!series){
+      // fallback: synthesize a historical USD series and then convert to IDR
+      const synthUSD = synthesizeSeries(lastKnownPriceUSD, points, modeSelected);
+      series = synthUSD;
+    }
+
+    // convert series to IDR
+    const seriesIDR = series.map(s => ({ t: s.t, v: Math.round(s.v * usdToIdr) }));
+
+    // update change pct display (compare first and last)
+    const first = seriesIDR[0].v;
+    const last = seriesIDR[seriesIDR.length-1].v;
+    const pct = ((last - first) / Math.max(1, Math.abs(first))) * 100;
+    changePctEl.textContent = (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%';
+    changePctEl.style.color = pct >= 0 ? '#7ee787' : '#ff8b8b';
+
+    const ch = seriesToChart(seriesIDR);
+    createChart(ch.labels, ch.data);
+
+    // if live, start interval
+    if(modeSelected === 'live') startLive();
+  }catch(e){
+    // show error UI
+    console.error('loadForMode error', e);
+    lastPriceEl.textContent = 'Error';
+    changePctEl.textContent = '-';
+    asOfEl.textContent = '-';
+    // attempt to show an empty chart
+    createChart([], []);
+  }
+}
+
+// fetch latest and append for live mode
+async function fetchLatestAndAppend(){
+  try{
+    const latest = await fetchCommodityLatest();
+    lastKnownPriceUSD = latest.priceUSD;
+    lastKnownTime = latest.timestamp;
+    const idr = Math.round(lastKnownPriceUSD * usdToIdr);
+    lastPriceEl.textContent = idrFmt.format(idr);
+    asOfEl.textContent = new Date(lastKnownTime).toLocaleString('id-ID');
+
+    const t = new Date(lastKnownTime).toISOString();
+    appendPointToChart(t, idr);
+  }catch(e){
+    console.warn('live fetch failed', e);
+  }
+}
+
+// initial load
+(async function init(){
+  createChart([], []); // placeholder
+  await loadForMode('live');
+})();
+
+</script>
+</body>
+</html>
