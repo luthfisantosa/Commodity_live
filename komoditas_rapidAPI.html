@@ -109,15 +109,58 @@
       justify-content: flex-end;
       align-items: center;
     }
-    input {
+    select {
       background: #fff;
       color: #333;
       border: 1px solid #ccc;
       border-radius: 6px;
       padding: 4px 8px;
-      width: 60px;
-      text-align: center;
       font-size: 0.9rem;
+    }
+    /* Modal styling */
+    .modal {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      background: rgba(0,0,0,0.4);
+      backdrop-filter: blur(3px);
+      z-index: 100;
+    }
+    .modal-content {
+      background: #fff;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+      max-width: 340px;
+      text-align: center;
+      animation: pop 0.3s ease;
+    }
+    @keyframes pop {
+      from { transform: scale(0.8); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .modal-content h2 {
+      margin-top: 0;
+      color: #007aff;
+    }
+    .modal-content p {
+      color: #333;
+      font-size: 0.95rem;
+    }
+    .close-btn {
+      margin-top: 16px;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 8px;
+      background: #007aff;
+      color: #fff;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .close-btn:hover {
+      background: #005ed1;
     }
   </style>
 </head>
@@ -154,9 +197,22 @@
     <footer>Data sumber: <b>API Ninjas - Commodity Price (Gold)</b></footer>
 
     <div class="side">
-      <label style="font-size:0.85rem;color:#555;">Live interval (detik)</label>
-      <input id="liveInterval" type="number" value="10" min="3">
+      <label style="font-size:0.85rem;color:#555;">Interval Live</label>
+      <select id="intervalSelect">
+        <option value="60">Per 60 Detik</option>
+        <option value="1">Per 1 Detik (Berlangganan)</option>
+      </select>
       <button id="refreshBtn" class="btn">Refresh Sekarang</button>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal" id="modal">
+    <div class="modal-content">
+      <h2>💎 Mode Premium</h2>
+      <p>Fitur pembaruan setiap 1 detik hanya tersedia untuk pengguna berlangganan.</p>
+      <p>Biaya berlangganan: <b>Rp 700.000</b></p>
+      <button class="close-btn" id="closeModal">Tutup</button>
     </div>
   </div>
 
@@ -169,13 +225,17 @@ let chart = null;
 let timer = null;
 let mode = 'live';
 let lastUSD = null;
+let currentInterval = 60;
 
 const elUSD = document.getElementById('lastPrice');
 const elIDR = document.getElementById('converted');
 const elAsOf = document.getElementById('asOf');
-const intervalInput = document.getElementById('liveInterval');
+const intervalSelect = document.getElementById('intervalSelect');
+const modal = document.getElementById('modal');
+const closeModal = document.getElementById('closeModal');
 const idrFmt = new Intl.NumberFormat('id-ID', { style:'currency', currency:'IDR', maximumFractionDigits:0 });
 
+// Tombol range waktu
 document.querySelectorAll('.btn-group .btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.btn-group .btn').forEach(b => b.classList.remove('active'));
@@ -186,12 +246,32 @@ document.querySelectorAll('.btn-group .btn').forEach(btn => {
   });
 });
 
+// Event refresh manual
 document.getElementById('refreshBtn').addEventListener('click', () => loadData());
+
+// Interval selector
+intervalSelect.addEventListener('change', () => {
+  const val = parseInt(intervalSelect.value);
+  if (val === 1) {
+    // tampilkan modal berlangganan
+    modal.style.display = 'flex';
+  } else {
+    currentInterval = val;
+    startLive();
+  }
+});
+
+// Modal close
+closeModal.addEventListener('click', () => {
+  modal.style.display = 'none';
+  intervalSelect.value = "60"; // reset ke 60 detik
+  currentInterval = 60;
+  startLive();
+});
 
 function startLive(){
   stopLive();
-  const sec = Math.max(3, parseInt(intervalInput.value) || 10);
-  timer = setInterval(fetchLatest, sec * 1000);
+  timer = setInterval(fetchLatest, currentInterval * 1000);
 }
 function stopLive(){
   if(timer) clearInterval(timer);
@@ -299,6 +379,7 @@ function createChart(labels = [], data = []) {
   });
 }
 
+// init
 (async () => {
   createChart([], []);
   await loadData();
