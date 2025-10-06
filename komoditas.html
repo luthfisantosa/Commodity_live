@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>Harga Crude Oil Live (IDR)</title>
+  <title>Harga Gold Live (IDR)</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
@@ -13,6 +13,29 @@
     }
     h2 {
       margin-bottom: 20px;
+    }
+    .cards {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-bottom: 25px;
+      flex-wrap: wrap;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      padding: 15px 25px;
+      min-width: 200px;
+    }
+    .card h3 {
+      margin: 5px 0;
+      color: #333;
+    }
+    .value {
+      font-size: 20px;
+      font-weight: bold;
+      color: #007bff;
     }
     #chartContainer {
       width: 80%;
@@ -26,8 +49,25 @@
   </style>
 </head>
 <body>
-  <h2>Harga Live Crude Oil (Rp)</h2>
+  <h2>📈 Harga Live Komoditas - Gold (Rp)</h2>
+
+  <div class="cards">
+    <div class="card">
+      <h3>📿 Komoditas</h3>
+      <div class="value" id="komoditas">Gold</div>
+    </div>
+    <div class="card">
+      <h3>💰 Harga Terbaru</h3>
+      <div class="value" id="hargaTerbaru">-</div>
+    </div>
+    <div class="card">
+      <h3>📅 Penutupan Sebelumnya</h3>
+      <div class="value" id="hargaClose">-</div>
+    </div>
+  </div>
+
   <div id="status">⏳ Mengambil data...</div>
+
   <div id="chartContainer">
     <canvas id="lineChart"></canvas>
   </div>
@@ -35,20 +75,21 @@
   <script>
     const ctx = document.getElementById('lineChart').getContext('2d');
     const API_KEY = "1uJVdDfwabtrO+OjWyRHhA==hUYLyqpcRg8JyLHC"; // ganti dengan API key kamu
-    const USD_TO_IDR = 15500; // kurs asumsi
+    const USD_TO_IDR = 15500; // kurs asumsi, bisa diganti dengan kurs aktual
 
     let labels = [];
     let dataHarga = [];
+    let lastClose = null;
 
     const lineChart = new Chart(ctx, {
       type: 'line',
       data: {
         labels: labels,
         datasets: [{
-          label: 'Harga Crude Oil (Rp per barrel)',
+          label: 'Harga Gold (Rp per unit)',
           data: dataHarga,
-          borderColor: 'rgba(54, 162, 235, 1)',
-          backgroundColor: 'rgba(54, 162, 235, 0.2)',
+          borderColor: 'rgba(255, 206, 86, 1)',
+          backgroundColor: 'rgba(255, 206, 86, 0.2)',
           borderWidth: 2,
           fill: true,
           tension: 0.3
@@ -57,12 +98,8 @@
       options: {
         responsive: true,
         scales: {
-          x: {
-            title: { display: true, text: 'Waktu' }
-          },
-          y: {
-            title: { display: true, text: 'Harga (Rp)' }
-          }
+          x: { title: { display: true, text: 'Waktu' } },
+          y: { title: { display: true, text: 'Harga (Rp)' } }
         }
       }
     });
@@ -72,11 +109,9 @@
         const response = await fetch("https://api.api-ninjas.com/v1/commodityprice?name=gold", {
           headers: { "X-Api-Key": API_KEY }
         });
-
         const data = await response.json();
         console.log("Response API:", data);
 
-        // cek apakah ada error
         if (data.error) {
           document.getElementById("status").innerText = "❌ Error: " + data.error;
           return;
@@ -85,21 +120,25 @@
         if (data.price) {
           const hargaUSD = data.price;
           const hargaIDR = hargaUSD * USD_TO_IDR;
-
-          const now = new Date();
-          const waktu = now.toLocaleTimeString();
+          const waktu = new Date().toLocaleTimeString();
 
           labels.push(waktu);
           dataHarga.push(hargaIDR.toFixed(0));
-
           if (labels.length > 10) {
             labels.shift();
             dataHarga.shift();
           }
-
           lineChart.update();
-          document.getElementById("status").innerText = 
-            `✅ Update ${waktu} | USD ${hargaUSD} → Rp ${hargaIDR.toLocaleString()}`;
+
+          // update kartu info
+          document.getElementById("hargaTerbaru").innerText = "Rp " + parseInt(hargaIDR).toLocaleString();
+          document.getElementById("status").innerText = `✅ Update ${waktu} | USD ${hargaUSD} → Rp ${hargaIDR.toLocaleString()}`;
+
+          // Simulasikan penutupan sebelumnya (anggap 0.5% lebih rendah dari harga terbaru pertama)
+          if (lastClose === null) {
+            lastClose = hargaIDR * 0.995;
+            document.getElementById("hargaClose").innerText = "Rp " + parseInt(lastClose).toLocaleString();
+          }
         } else {
           document.getElementById("status").innerText = "⚠️ Data harga tidak ditemukan!";
         }
@@ -114,4 +153,3 @@
   </script>
 </body>
 </html>
-
