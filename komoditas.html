@@ -2,115 +2,191 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>Harga Crude Oil Live (IDR)</title>
+  <title>Harga Gold Live & Historical (IDR)</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      background: #f9f9f9;
-      padding: 30px;
-    }
-    h2 {
-      margin-bottom: 20px;
-    }
-    #chartContainer {
-      width: 80%;
-      margin: auto;
-    }
-    #status {
-      margin: 10px;
-      font-size: 14px;
-      color: #555;
-    }
+    body { font-family: Arial, sans-serif; text-align: center; background: #f8f9fa; padding: 25px; }
+    .cards { display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; }
+    .card { background: white; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); padding: 15px 20px; min-width: 180px; }
+    .card h3 { margin: 5px 0; color: #333; }
+    .value { font-size: 20px; font-weight: bold; color: #d4af37; }
+    .period-buttons { margin-bottom: 20px; }
+    .period-buttons button { margin: 0 5px; padding: 8px 15px; border: none; border-radius: 6px; background-color: #d4af37; color: white; cursor: pointer; }
+    .period-buttons button:hover { background-color: #b99229; }
+    .period-buttons .active { background-color: #b99229; }
+    #chartContainer { width: 85%; margin: auto; }
+    #status { margin-top: 15px; font-size: 14px; color: #555; }
   </style>
 </head>
 <body>
-  <h2>Harga Live Crude Oil (Rp)</h2>
-  <div id="status">⏳ Mengambil data...</div>
-  <div id="chartContainer">
-    <canvas id="lineChart"></canvas>
+  <h2>📊 Harga Komoditas Gold (Rupiah)</h2>
+  <div class="cards">
+    <div class="card"><h3>📿 Komoditas</h3><div class="value" id="komoditas">Gold</div></div>
+    <div class="card"><h3>💰 Harga Terbaru</h3><div class="value" id="hargaTerbaru">-</div></div>
+    <div class="card"><h3>📅 Penutupan Sebelumnya</h3><div class="value" id="hargaClose">-</div></div>
   </div>
+  <div class="period-buttons">
+    <button id="liveBtn" class="active">Live</button>
+    <button id="weekBtn">1 Minggu</button>
+    <button id="yearBtn">1 Tahun</button>
+    <button id="threeBtn">3 Tahun</button>
+    <button id="fiveBtn">5 Tahun</button>
+  </div>
+  <div id="chartContainer"><canvas id="lineChart"></canvas></div>
+  <div id="status">⏳ Mengambil data...</div>
 
   <script>
     const ctx = document.getElementById('lineChart').getContext('2d');
-    const API_KEY = "1uJVdDfwabtrO+OjWyRHhA==hUYLyqpcRg8JyLHC"; // ganti dengan API key kamu
-    const USD_TO_IDR = 15500; // kurs asumsi
+    const API_KEY_NINJAS = "1uJVdDfwabtrO+OjWyRHhA==hUYLyqpcRg8JyLHC";  // tetap bisa dipakai untuk live
+    const API_KEY_METALS = "YOUR_METALS_API_KEY";  // ganti dengan key Metals-API / Commodities-API
+    const USD_TO_IDR = 15500;
 
     let labels = [];
     let dataHarga = [];
+    let intervalLive = null;
+    let lastClose = null;
 
     const lineChart = new Chart(ctx, {
       type: 'line',
-      data: {
-        labels: labels,
-        datasets: [{
-          label: 'Harga Crude Oil (Rp per barrel)',
-          data: dataHarga,
-          borderColor: 'rgba(54, 162, 235, 1)',
-          backgroundColor: 'rgba(54, 162, 235, 0.2)',
-          borderWidth: 2,
-          fill: true,
-          tension: 0.3
-        }]
-      },
+      data: { labels: labels, datasets: [{ label: 'Harga Gold (Rp)', data: dataHarga, borderColor: '#d4af37', backgroundColor: 'rgba(212,175,55,0.2)', borderWidth: 2, fill: true, tension: 0.3 }] },
       options: {
         responsive: true,
         scales: {
-          x: {
-            title: { display: true, text: 'Waktu' }
-          },
-          y: {
-            title: { display: true, text: 'Harga (Rp)' }
-          }
+          x: { title: { display: true, text: 'Waktu / Tanggal' } },
+          y: { title: { display: true, text: 'Harga (Rp)' } }
         }
       }
     });
 
-    async function fetchData() {
+    // ===== Live data via API Ninjas =====
+    async function fetchLiveData() {
       try {
-        const response = await fetch("https://api.api-ninjas.com/v1/commodityprice?name=crude%20oil", {
-          headers: { "X-Api-Key": API_KEY }
+        const resp = await fetch("https://api.api-ninjas.com/v1/commodityprice?name=gold", {
+          headers: { "X-Api-Key": API_KEY_NINJAS }
         });
+        const data = await resp.json();
+        if (!data.price) throw new Error("Tidak ada price");
+        const hargaUSD = data.price;
+        const hargaIDR = hargaUSD * USD_TO_IDR;
+        const waktu = new Date().toLocaleTimeString();
 
-        const data = await response.json();
-        console.log("Response API:", data);
+        labels.push(waktu);
+        dataHarga.push(hargaIDR.toFixed(0));
+        if (labels.length > 20) { labels.shift(); dataHarga.shift(); }
+        lineChart.update();
 
-        // cek apakah ada error
-        if (data.error) {
-          document.getElementById("status").innerText = "❌ Error: " + data.error;
-          return;
-        }
-
-        if (data.price) {
-          const hargaUSD = data.price;
-          const hargaIDR = hargaUSD * USD_TO_IDR;
-
-          const now = new Date();
-          const waktu = now.toLocaleTimeString();
-
-          labels.push(waktu);
-          dataHarga.push(hargaIDR.toFixed(0));
-
-          if (labels.length > 10) {
-            labels.shift();
-            dataHarga.shift();
-          }
-
-          lineChart.update();
-          document.getElementById("status").innerText = 
-            `✅ Update ${waktu} | USD ${hargaUSD} → Rp ${hargaIDR.toLocaleString()}`;
-        } else {
-          document.getElementById("status").innerText = "⚠️ Data harga tidak ditemukan!";
+        document.getElementById("hargaTerbaru").innerText = "Rp " + parseInt(hargaIDR).toLocaleString();
+        document.getElementById("status").innerText = `✅ Live update: ${waktu}`;
+        if (!lastClose) {
+          lastClose = hargaIDR * 0.995;
+          document.getElementById("hargaClose").innerText = "Rp " + parseInt(lastClose).toLocaleString();
         }
       } catch (err) {
-        console.error("Fetch gagal:", err);
-        document.getElementById("status").innerText = "❌ Gagal ambil data API";
+        console.error("Live fetch error:", err);
+        document.getElementById("status").innerText = "⚠️ Gagal fetch live data";
       }
     }
 
-    fetchData();
-    setInterval(fetchData, 5000);
+    function startLiveMode() {
+      clearInterval(intervalLive);
+      labels.length = 0; dataHarga.length = 0;
+      lineChart.update();
+      fetchLiveData();
+      intervalLive = setInterval(fetchLiveData, 5000);
+    }
+
+    // ===== Historical data via Metals-API / Commodities-API =====
+    async function fetchHistorical(startDate, endDate) {
+      // contoh endpoint Metals-API: /timeseries?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD
+      // atau untuk Commodities-API: /timeseries?symbols=XAU&start_date=...&end_date=...
+      try {
+        const url = `https://api.metals-api.com/v1/timeframe?access_key=${API_KEY_METALS}&start_date=${startDate}&end_date=${endDate}&symbols=XAU`;
+        const resp = await fetch(url);
+        const json = await resp.json();
+        if (!json.rates) throw new Error("No rates");
+        // json.rates adalah object: { "2025-10-01": { "XAU": value, ... }, "2025-09-30": { "XAU": value, ... }, ... }
+        const rates = json.rates;
+        labels.length = 0;
+        dataHarga.length = 0;
+        // iterate tanggal terurut
+        const dates = Object.keys(rates).sort();
+        for (let d of dates) {
+          const rateUSDperXAU = rates[d].XAU;  // itu harga XAU dalam USD
+          const priceUSD = 1 / rateUSDperXAU; // tergantung format API (mungkin XAU per USD atau USD per XAU) → sesuaikan
+          const priceIDR = priceUSD * USD_TO_IDR;
+          labels.push(d);
+          dataHarga.push(priceIDR.toFixed(0));
+        }
+        lineChart.update();
+        document.getElementById("status").innerText = `📅 Menampilkan data historis ${startDate} → ${endDate}`;
+
+        // set harga penutupan sebelumnya ke nilai pertama/terakhir daftar (misalnya penutupan hari sebelum live)
+        if (dataHarga.length > 0) {
+          document.getElementById("hargaClose").innerText = "Rp " + parseInt(dataHarga[0]).toLocaleString();
+        }
+
+      } catch (err) {
+        console.error("Historical fetch error:", err);
+        document.getElementById("status").innerText = "⚠️ Gagal fetch historis";
+      }
+    }
+
+    function setPeriod(period) {
+      clearInterval(intervalLive);
+      labels.length = 0;
+      dataHarga.length = 0;
+      lineChart.update();
+
+      const today = new Date();
+      let startDate;
+      if (period === "1w") {
+        const past = new Date(today);
+        past.setDate(today.getDate() - 7);
+        startDate = past.toISOString().split("T")[0];
+        const endDate = today.toISOString().split("T")[0];
+        fetchHistorical(startDate, endDate);
+      } else if (period === "1y") {
+        const past = new Date(today);
+        past.setFullYear(today.getFullYear() - 1);
+        startDate = past.toISOString().split("T")[0];
+        const endDate = today.toISOString().split("T")[0];
+        fetchHistorical(startDate, endDate);
+      } else if (period === "3y") {
+        const past = new Date(today);
+        past.setFullYear(today.getFullYear() - 3);
+        startDate = past.toISOString().split("T")[0];
+        const endDate = today.toISOString().split("T")[0];
+        fetchHistorical(startDate, endDate);
+      } else if (period === "5y") {
+        const past = new Date(today);
+        past.setFullYear(today.getFullYear() - 5);
+        startDate = past.toISOString().split("T")[0];
+        const endDate = today.toISOString().split("T")[0];
+        fetchHistorical(startDate, endDate);
+      } else {
+        // live
+        startLiveMode();
+      }
+    }
+
+    // tombol event
+    document.getElementById("liveBtn").onclick = () => { setActiveBtn("live"); setPeriod("live"); };
+    document.getElementById("weekBtn").onclick = () => { setActiveBtn("week"); setPeriod("1w"); };
+    document.getElementById("yearBtn").onclick = () => { setActiveBtn("year"); setPeriod("1y"); };
+    document.getElementById("threeBtn").onclick = () => { setActiveBtn("three"); setPeriod("3y"); };
+    document.getElementById("fiveBtn").onclick = () => { setActiveBtn("five"); setPeriod("5y"); };
+
+    function setActiveBtn(mode) {
+      document.querySelectorAll(".period-buttons button").forEach(btn => btn.classList.remove("active"));
+      if (mode === "live") document.getElementById("liveBtn").classList.add("active");
+      if (mode === "week") document.getElementById("weekBtn").classList.add("active");
+      if (mode === "year") document.getElementById("yearBtn").classList.add("active");
+      if (mode === "three") document.getElementById("threeBtn").classList.add("active");
+      if (mode === "five") document.getElementById("fiveBtn").classList.add("active");
+    }
+
+    // mulai default
+    startLiveMode();
   </script>
 </body>
 </html>
