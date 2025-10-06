@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Live Harga Emas Antam Dashboard</title>
+  <title>Live Dashboard Harga Emas Antam</title>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
   <style>
     body{
-      font-family:Inter,Arial,sans-serif;
-      background:linear-gradient(180deg,#071027 0%,#0a1220 100%);
-      color:#e6eef6;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+      background:#f6f7f9;
+      color:#2b2b2b;
       margin:0;
       padding:20px;
       display:flex;
@@ -20,68 +20,83 @@
     .container{
       max-width:960px;
       width:100%;
-      background:rgba(255,255,255,0.03);
-      border-radius:14px;
-      padding:18px;
-      box-shadow:0 8px 30px rgba(2,6,23,0.6);
-      backdrop-filter:blur(8px);
+      background:#ffffffd9;
+      border-radius:18px;
+      padding:24px;
+      box-shadow:0 8px 30px rgba(0,0,0,0.1);
+      backdrop-filter:blur(10px);
+      border:1px solid rgba(255,255,255,0.7);
     }
     header{
       display:flex;
       justify-content:space-between;
       align-items:center;
-      margin-bottom:12px;
       flex-wrap:wrap;
       gap:12px;
+      margin-bottom:20px;
     }
-    h1{margin:0;font-size:1.1rem;}
+    h1{margin:0;font-size:1.2rem;font-weight:600;color:#111;}
     .btn-group{
-      display:flex;gap:8px;background:rgba(255,255,255,0.05);
-      padding:6px;border-radius:10px;
+      display:flex;gap:6px;
+      background:#f1f1f1;
+      padding:5px;
+      border-radius:12px;
     }
     .btn{
       border:0;
-      padding:8px 12px;
+      padding:7px 12px;
       border-radius:8px;
       background:transparent;
-      color:#9aa6b2;
+      color:#444;
       cursor:pointer;
-      font-weight:600;
+      font-weight:500;
       transition:all .2s;
     }
-    .btn:hover{color:#fff;}
+    .btn:hover{background:#e0e0e0;}
     .btn.active{
-      background:linear-gradient(90deg,rgba(6,182,212,0.15),rgba(96,165,250,0.1));
-      color:#06b6d4;
+      background:linear-gradient(180deg,#ffffff,#e8e8e8);
+      box-shadow:inset 0 1px 2px rgba(0,0,0,0.05);
+      color:#007aff;
+      font-weight:600;
     }
     .stats{
-      display:flex;gap:12px;margin-bottom:10px;flex-wrap:wrap;
+      display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;
     }
     .stat{
       flex:1;
-      background:rgba(255,255,255,0.04);
-      border-radius:10px;
+      background:#fafafa;
+      border:1px solid #e5e5e5;
+      border-radius:12px;
+      padding:14px;
       text-align:center;
-      padding:10px;
+      box-shadow:0 2px 6px rgba(0,0,0,0.04);
       min-width:140px;
     }
-    .num{font-weight:700;font-size:1.1rem;}
-    .lbl{font-size:0.8rem;color:#9aa6b2;}
-    canvas{width:100%!important;height:360px!important;}
-    footer{font-size:0.8rem;color:#9aa6b2;text-align:right;margin-top:8px;}
+    .num{font-size:1.1rem;font-weight:700;color:#111;}
+    .lbl{font-size:0.8rem;color:#777;}
+    canvas{width:100%!important;height:380px!important;}
+    footer{text-align:right;font-size:0.8rem;color:#777;margin-top:8px;}
     .side{
-      margin-top:10px;
+      margin-top:14px;
       display:flex;gap:10px;flex-wrap:wrap;
-      justify-content:flex-end;
-      align-items:center;
+      justify-content:flex-end;align-items:center;
     }
-    input{background:transparent;color:#e6eef6;border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:4px 8px;width:60px;text-align:center;}
+    input{
+      background:#fff;
+      color:#333;
+      border:1px solid #ccc;
+      border-radius:6px;
+      padding:4px 8px;
+      width:60px;
+      text-align:center;
+      font-size:0.9rem;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <header>
-      <h1>📈 Live Dashboard Harga Emas Antam</h1>
+      <h1>💎 Live Dashboard Harga Emas Antam</h1>
       <div class="btn-group">
         <button class="btn active" data-range="live">Live</button>
         <button class="btn" data-range="1d">1D</button>
@@ -111,47 +126,115 @@
     <footer>Sumber: harga-emas-antam.p.rapidapi.com (update otomatis)</footer>
 
     <div class="side">
-      <label style="font-size:0.85rem;color:#9aa6b2;">Live interval (detik)</label>
+      <label style="font-size:0.85rem;color:#555;">Live interval (detik)</label>
       <input id="liveInterval" type="number" value="10" min="3">
       <button id="refreshBtn" class="btn">Refresh Sekarang</button>
     </div>
   </div>
 
 <script>
-const RAPIDAPI_KEY = 'b8483ce4fbmsh6b85dbc539944abp1b11d4jsn43c8cf2767b6';
-const RAPIDAPI_HOST = 'harga-emas-antam.p.rapidapi.com';
+const API_KEY = 'b8483ce4fbmsh6b85dbc539944abp1b11d4jsn43c8cf2767b6';
+const API_HOST = 'harga-emas-antam.p.rapidapi.com';
 const API_URL = 'https://harga-emas-antam.p.rapidapi.com/';
 
-let chart = null;
-let mode = 'live';
-let timer = null;
-let lastPrice = null;
+const idrFmt = new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0});
+let chart, timer, mode='live', lastPrice=null;
 
-const idrFmt = new Intl.NumberFormat('id-ID', { style:'currency', currency:'IDR', maximumFractionDigits:0 });
-const lastPriceEl = document.getElementById('lastPrice');
-const changePctEl = document.getElementById('changePct');
-const asOfEl = document.getElementById('asOf');
-const refreshBtn = document.getElementById('refreshBtn');
-const liveIntervalInput = document.getElementById('liveInterval');
+const elLast=document.getElementById('lastPrice');
+const elPct=document.getElementById('changePct');
+const elAsOf=document.getElementById('asOf');
+const intervalInput=document.getElementById('liveInterval');
 
-document.querySelectorAll('.btn-group .btn').forEach(b=>{
-  b.addEventListener('click',()=>{
-    document.querySelectorAll('.btn-group .btn').forEach(x=>x.classList.remove('active'));
-    b.classList.add('active');
-    mode = b.dataset.range;
+document.querySelectorAll('.btn-group .btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.btn-group .btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    mode=btn.dataset.range;
     stopLive();
     loadData();
   });
 });
-refreshBtn.addEventListener('click',()=>loadData());
+document.getElementById('refreshBtn').addEventListener('click',()=>loadData());
 
 function startLive(){
   stopLive();
-  const sec = Math.max(3, parseInt(liveIntervalInput.value)||10);
-  timer = setInterval(()=> fetchLatest(true), sec*1000);
+  const sec=Math.max(3,parseInt(intervalInput.value)||10);
+  timer=setInterval(fetchLatest,sec*1000);
 }
 function stopLive(){
-  if(timer){ clearInterval(timer); timer=null; }
+  if(timer){clearInterval(timer);timer=null;}
+}
+
+async function fetchLatest(){
+  try{
+    const res=await fetch(API_URL,{
+      headers:{
+        'x-rapidapi-key':API_KEY,
+        'x-rapidapi-host':API_HOST
+      }
+    });
+    const data=await res.json();
+    console.log('API response:',data);
+
+    // Ambil harga dari struktur API (penyesuaian jika format berbeda)
+    let price=null;
+    if(data.data && data.data.emas){
+      price=data.data.emas.buy || data.data.emas.harga_beli;
+    }else if(data.emas){
+      price=data.emas.buy;
+    }else if(data.price){
+      price=data.price;
+    }
+
+    if(!price) return;
+
+    const now=new Date();
+    elLast.textContent=idrFmt.format(price);
+    elAsOf.textContent=now.toLocaleString('id-ID');
+
+    if(lastPrice){
+      const pct=((price-lastPrice)/lastPrice)*100;
+      elPct.textContent=(pct>=0?'+':'')+pct.toFixed(2)+'%';
+      elPct.style.color=pct>=0?'#1a7f37':'#d72626';
+    }
+    lastPrice=price;
+
+    // update chart
+    if(chart){
+      chart.data.labels.push(now.toLocaleTimeString('id-ID'));
+      chart.data.datasets[0].data.push(price);
+      if(chart.data.labels.length>100){
+        chart.data.labels.shift();
+        chart.data.datasets[0].data.shift();
+      }
+      chart.update('none');
+    }
+  }catch(e){
+    console.error(e);
+  }
+}
+
+function synthesize(base,n){
+  const arr=[],now=Date.now();
+  let p=base;
+  for(let i=n-1;i>=0;i--){
+    const delta=(Math.random()-0.5)*0.015;
+    p=p*(1+delta);
+    arr.push({t:new Date(now-i*3600*1000).toLocaleDateString('id-ID'),v:p});
+  }
+  return arr;
+}
+
+async function loadData(){
+  stopLive();
+  await fetchLatest();
+  const base=lastPrice||1000000;
+  const n=mode==='1d'?24:mode==='1w'?70:mode==='1m'?120:mode==='1y'?240:mode==='5y'?400:60;
+  const series=synthesize(base,n);
+  const labels=series.map(s=>s.t);
+  const data=series.map(s=>s.v);
+  createChart(labels,data);
+  if(mode==='live') startLive();
 }
 
 function createChart(labels=[],data=[]){
@@ -162,107 +245,26 @@ function createChart(labels=[],data=[]){
     data:{labels,datasets:[{
       label:'Harga Emas Antam (IDR/gr)',
       data,
+      borderColor:'#007aff',
+      backgroundColor:'rgba(0,122,255,0.1)',
       borderWidth:2,
-      borderColor:'rgba(6,182,212,0.9)',
-      backgroundColor:'rgba(6,182,212,0.06)',
+      tension:0.3,
       fill:true,
-      tension:0.25,
       pointRadius:0
     }]},
     options:{
-      interaction:{mode:'nearest',intersect:false},
+      responsive:true,
+      maintainAspectRatio:false,
       plugins:{legend:{display:false}},
       scales:{
-        x:{ticks:{color:'#9aa6b2'}},
-        y:{ticks:{color:'#9aa6b2',callback:v=>idrFmt.format(v)}}
-      },
-      maintainAspectRatio:false
+        x:{ticks:{color:'#555'}},
+        y:{ticks:{color:'#555',callback:v=>idrFmt.format(v)}}
+      }
     }
   });
 }
 
-async function fetchLatest(append=false){
-  try{
-    const res = await fetch(API_URL, {
-      method:'GET',
-      headers:{
-        'x-rapidapi-key': RAPIDAPI_KEY,
-        'x-rapidapi-host': RAPIDAPI_HOST
-      }
-    });
-    const j = await res.json();
-    console.log('Harga emas Antam response', j);
-
-    // parsing struktur API emas antam
-    // biasanya: { "data": { "emas": { "buy": 1175000, "sell": 1150000, ... } } }
-    let price = null;
-    if (j.data && j.data.emas) {
-      price = j.data.emas.buy || j.data.emas.price || j.data.emas['harga'] || j.data.emas['harga_beli'];
-    } else if (j.emas) {
-      price = j.emas.buy || j.emas.harga;
-    } else if (typeof j.price === 'number') {
-      price = j.price;
-    }
-
-    if(!price || isNaN(price)) throw new Error('Tidak ditemukan field harga pada response API.');
-
-    lastPrice = price;
-    const now = new Date();
-
-    lastPriceEl.textContent = idrFmt.format(price);
-    asOfEl.textContent = now.toLocaleString('id-ID');
-
-    if(append && chart){
-      chart.data.labels.push(now.toISOString());
-      chart.data.datasets[0].data.push(price);
-      if(chart.data.labels.length>200){
-        chart.data.labels.shift();
-        chart.data.datasets[0].data.shift();
-      }
-      chart.update('none');
-    }
-    return price;
-  }catch(e){
-    console.error('fetchLatest error',e);
-  }
-}
-
-function synthesizeSeries(basePrice,points){
-  const series=[];
-  const now=Date.now();
-  let price=basePrice;
-  for(let i=points-1;i>=0;i--){
-    const rnd=(Math.random()-0.5)*0.02;
-    price=price*(1+rnd);
-    const t=new Date(now - i*3600*1000);
-    series.push({t:t.toISOString(),v:price});
-  }
-  return series;
-}
-
-async function loadData(){
-  try{
-    const p = await fetchLatest(false);
-    const base = p || lastPrice || 1000000;
-
-    // synthesise for chart
-    const pts = mode==='live'?60:mode==='1d'?96:mode==='1w'?150:mode==='1m'?200:mode==='1y'?300:400;
-    const series = synthesizeSeries(base, pts);
-    const labels = series.map(s=>s.t);
-    const data = series.map(s=>s.v);
-    const pct = ((data[data.length-1]-data[0])/data[0])*100;
-    changePctEl.textContent = (pct>=0?'+':'')+pct.toFixed(2)+'%';
-    changePctEl.style.color = pct>=0 ? '#7ee787' : '#ff8b8b';
-    createChart(labels,data);
-
-    if(mode==='live') startLive();
-  }catch(e){
-    console.error('loadData error',e);
-  }
-}
-
-// init
-(async()=>{createChart([],[]);await loadData();})();
+(async()=>{await loadData();})();
 </script>
 </body>
 </html>
