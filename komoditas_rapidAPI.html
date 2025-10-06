@@ -3,100 +3,128 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Live Dashboard Harga Emas Antam</title>
+  <title>📈 Live Dashboard Harga Emas (API Ninjas)</title>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
   <style>
-    body{
-      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-      background:#f6f7f9;
-      color:#2b2b2b;
-      margin:0;
-      padding:20px;
-      display:flex;
-      justify-content:center;
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      background: linear-gradient(160deg, #f3f4f6 0%, #e2e3e7 100%);
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
     }
-    .container{
-      max-width:960px;
-      width:100%;
-      background:#ffffffd9;
-      border-radius:18px;
-      padding:24px;
-      box-shadow:0 8px 30px rgba(0,0,0,0.1);
-      backdrop-filter:blur(10px);
-      border:1px solid rgba(255,255,255,0.7);
+    .container {
+      width: 95%;
+      max-width: 960px;
+      background: rgba(255,255,255,0.8);
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      backdrop-filter: blur(15px);
+      border: 1px solid rgba(255,255,255,0.5);
     }
-    header{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      flex-wrap:wrap;
-      gap:12px;
-      margin-bottom:20px;
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+      gap: 10px;
     }
-    h1{margin:0;font-size:1.2rem;font-weight:600;color:#111;}
-    .btn-group{
-      display:flex;gap:6px;
-      background:#f1f1f1;
-      padding:5px;
-      border-radius:12px;
+    h1 {
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin: 0;
+      color: #222;
     }
-    .btn{
-      border:0;
-      padding:7px 12px;
-      border-radius:8px;
-      background:transparent;
-      color:#444;
-      cursor:pointer;
-      font-weight:500;
-      transition:all .2s;
+    .btn-group {
+      display: flex;
+      gap: 6px;
+      background: #f1f1f1;
+      padding: 5px;
+      border-radius: 12px;
     }
-    .btn:hover{background:#e0e0e0;}
-    .btn.active{
-      background:linear-gradient(180deg,#ffffff,#e8e8e8);
-      box-shadow:inset 0 1px 2px rgba(0,0,0,0.05);
-      color:#007aff;
-      font-weight:600;
+    .btn {
+      border: none;
+      padding: 7px 12px;
+      border-radius: 8px;
+      background: transparent;
+      color: #333;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all .2s;
     }
-    .stats{
-      display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;
+    .btn:hover {
+      background: #e0e0e0;
     }
-    .stat{
-      flex:1;
-      background:#fafafa;
-      border:1px solid #e5e5e5;
-      border-radius:12px;
-      padding:14px;
-      text-align:center;
-      box-shadow:0 2px 6px rgba(0,0,0,0.04);
-      min-width:140px;
+    .btn.active {
+      background: linear-gradient(180deg, #fff, #e8e8e8);
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+      color: #007aff;
+      font-weight: 600;
     }
-    .num{font-size:1.1rem;font-weight:700;color:#111;}
-    .lbl{font-size:0.8rem;color:#777;}
-    canvas{width:100%!important;height:380px!important;}
-    footer{text-align:right;font-size:0.8rem;color:#777;margin-top:8px;}
-    .side{
-      margin-top:14px;
-      display:flex;gap:10px;flex-wrap:wrap;
-      justify-content:flex-end;align-items:center;
+    .stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 15px;
     }
-    input{
-      background:#fff;
-      color:#333;
-      border:1px solid #ccc;
-      border-radius:6px;
-      padding:4px 8px;
-      width:60px;
-      text-align:center;
-      font-size:0.9rem;
+    .stat {
+      flex: 1;
+      min-width: 140px;
+      background: #fafafa;
+      border: 1px solid #e5e5e5;
+      border-radius: 12px;
+      padding: 14px;
+      text-align: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    }
+    .num {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #111;
+    }
+    .lbl {
+      font-size: 0.8rem;
+      color: #777;
+    }
+    canvas {
+      width: 100% !important;
+      height: 380px !important;
+    }
+    footer {
+      text-align: right;
+      font-size: 0.8rem;
+      color: #777;
+      margin-top: 8px;
+    }
+    .side {
+      margin-top: 14px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      align-items: center;
+    }
+    input {
+      background: #fff;
+      color: #333;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      padding: 4px 8px;
+      width: 60px;
+      text-align: center;
+      font-size: 0.9rem;
     }
   </style>
 </head>
 <body>
   <div class="container">
     <header>
-      <h1>💎 Live Dashboard Harga Emas Antam</h1>
+      <h1>📊 Live Dashboard Harga Emas (API Ninjas)</h1>
       <div class="btn-group">
         <button class="btn active" data-range="live">Live</button>
         <button class="btn" data-range="1d">1D</button>
@@ -110,11 +138,11 @@
     <div class="stats">
       <div class="stat">
         <div class="num" id="lastPrice">--</div>
-        <div class="lbl">Harga Terakhir /gr (IDR)</div>
+        <div class="lbl">Harga Emas (USD)</div>
       </div>
       <div class="stat">
-        <div class="num" id="changePct">--</div>
-        <div class="lbl">Perubahan Estimasi</div>
+        <div class="num" id="converted">--</div>
+        <div class="lbl">Setara (IDR)</div>
       </div>
       <div class="stat">
         <div class="num" id="asOf">--</div>
@@ -123,7 +151,7 @@
     </div>
 
     <canvas id="chart"></canvas>
-    <footer>Sumber: harga-emas-antam.p.rapidapi.com (update otomatis)</footer>
+    <footer>Data sumber: <b>API Ninjas - Commodity Price (Gold)</b></footer>
 
     <div class="side">
       <label style="font-size:0.85rem;color:#555;">Live interval (detik)</label>
@@ -133,94 +161,92 @@
   </div>
 
 <script>
-const API_KEY = 'b8483ce4fbmsh6b85dbc539944abp1b11d4jsn43c8cf2767b6';
-const API_HOST = 'harga-emas-antam.p.rapidapi.com';
-const API_URL = 'https://harga-emas-antam.p.rapidapi.com/';
+const API_KEY = '1uJVdDfwabtrO+OjWyRHhA==hUYLyqpcRg8JyLHC';
+const COMMODITY_URL = 'https://api.api-ninjas.com/v1/commodityprice?name=gold';
+const RATE_URL = 'https://api.api-ninjas.com/v1/exchangerate?pair=USD_IDR';
 
-const idrFmt = new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0});
-let chart, timer, mode='live', lastPrice=null;
+let chart = null;
+let timer = null;
+let mode = 'live';
+let lastUSD = null;
 
-const elLast=document.getElementById('lastPrice');
-const elPct=document.getElementById('changePct');
-const elAsOf=document.getElementById('asOf');
-const intervalInput=document.getElementById('liveInterval');
+const elUSD = document.getElementById('lastPrice');
+const elIDR = document.getElementById('converted');
+const elAsOf = document.getElementById('asOf');
+const intervalInput = document.getElementById('liveInterval');
+const idrFmt = new Intl.NumberFormat('id-ID', { style:'currency', currency:'IDR', maximumFractionDigits:0 });
 
-document.querySelectorAll('.btn-group .btn').forEach(btn=>{
-  btn.addEventListener('click',()=>{
-    document.querySelectorAll('.btn-group .btn').forEach(b=>b.classList.remove('active'));
+document.querySelectorAll('.btn-group .btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.btn-group .btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    mode=btn.dataset.range;
+    mode = btn.dataset.range;
     stopLive();
     loadData();
   });
 });
-document.getElementById('refreshBtn').addEventListener('click',()=>loadData());
+
+document.getElementById('refreshBtn').addEventListener('click', () => loadData());
 
 function startLive(){
   stopLive();
-  const sec=Math.max(3,parseInt(intervalInput.value)||10);
-  timer=setInterval(fetchLatest,sec*1000);
+  const sec = Math.max(3, parseInt(intervalInput.value) || 10);
+  timer = setInterval(fetchLatest, sec * 1000);
 }
 function stopLive(){
-  if(timer){clearInterval(timer);timer=null;}
+  if(timer) clearInterval(timer);
 }
 
-async function fetchLatest(){
-  try{
-    const res=await fetch(API_URL,{
-      headers:{
-        'x-rapidapi-key':API_KEY,
-        'x-rapidapi-host':API_HOST
-      }
-    });
-    const data=await res.json();
-    console.log('API response:',data);
-
-    // Ambil harga dari struktur API (penyesuaian jika format berbeda)
-    let price=null;
-    if(data.data && data.data.emas){
-      price=data.data.emas.buy || data.data.emas.harga_beli;
-    }else if(data.emas){
-      price=data.emas.buy;
-    }else if(data.price){
-      price=data.price;
-    }
-
-    if(!price) return;
-
-    const now=new Date();
-    elLast.textContent=idrFmt.format(price);
-    elAsOf.textContent=now.toLocaleString('id-ID');
-
-    if(lastPrice){
-      const pct=((price-lastPrice)/lastPrice)*100;
-      elPct.textContent=(pct>=0?'+':'')+pct.toFixed(2)+'%';
-      elPct.style.color=pct>=0?'#1a7f37':'#d72626';
-    }
-    lastPrice=price;
-
-    // update chart
-    if(chart){
-      chart.data.labels.push(now.toLocaleTimeString('id-ID'));
-      chart.data.datasets[0].data.push(price);
-      if(chart.data.labels.length>100){
-        chart.data.labels.shift();
-        chart.data.datasets[0].data.shift();
-      }
-      chart.update('none');
-    }
-  }catch(e){
-    console.error(e);
+async function fetchRateUSDToIDR(){
+  try {
+    const res = await fetch(RATE_URL, { headers: { 'X-Api-Key': API_KEY } });
+    const j = await res.json();
+    return j.rate || 16000;
+  } catch {
+    return 16000;
   }
 }
 
-function synthesize(base,n){
-  const arr=[],now=Date.now();
-  let p=base;
-  for(let i=n-1;i>=0;i--){
-    const delta=(Math.random()-0.5)*0.015;
-    p=p*(1+delta);
-    arr.push({t:new Date(now-i*3600*1000).toLocaleDateString('id-ID'),v:p});
+async function fetchLatest(){
+  try {
+    const res = await fetch(COMMODITY_URL, { headers: { 'X-Api-Key': API_KEY } });
+    const j = await res.json();
+    if (j && j.price) {
+      const usd = j.price;
+      const ts = j.updated ? new Date(j.updated * 1000) : new Date();
+      lastUSD = usd;
+
+      const rate = await fetchRateUSDToIDR();
+      const idr = usd * rate;
+
+      elUSD.textContent = usd.toFixed(2) + " USD";
+      elIDR.textContent = idrFmt.format(idr);
+      elAsOf.textContent = ts.toLocaleString('id-ID');
+
+      if (chart) {
+        chart.data.labels.push(ts.toLocaleTimeString('id-ID'));
+        chart.data.datasets[0].data.push(idr);
+        if (chart.data.labels.length > 100) {
+          chart.data.labels.shift();
+          chart.data.datasets[0].data.shift();
+        }
+        chart.update('none');
+      }
+    }
+  } catch (e) {
+    console.warn('fetchLatest error:', e);
+  }
+}
+
+function synthesize(base, points) {
+  const arr = [];
+  const now = Date.now();
+  let p = base;
+  for (let i = points - 1; i >= 0; i--) {
+    const delta = (Math.random() - 0.5) * 0.02;
+    p *= (1 + delta);
+    const t = new Date(now - i * 3600 * 1000);
+    arr.push({ t: t.toLocaleTimeString('id-ID'), v: p });
   }
   return arr;
 }
@@ -228,43 +254,55 @@ function synthesize(base,n){
 async function loadData(){
   stopLive();
   await fetchLatest();
-  const base=lastPrice||1000000;
-  const n=mode==='1d'?24:mode==='1w'?70:mode==='1m'?120:mode==='1y'?240:mode==='5y'?400:60;
-  const series=synthesize(base,n);
-  const labels=series.map(s=>s.t);
-  const data=series.map(s=>s.v);
-  createChart(labels,data);
-  if(mode==='live') startLive();
+  const base = lastUSD ? lastUSD * await fetchRateUSDToIDR() : 1000000;
+  let pts = 60;
+  if (mode === '1d') pts = 96;
+  else if (mode === '1w') pts = 140;
+  else if (mode === '1m') pts = 200;
+  else if (mode === '1y') pts = 300;
+  else if (mode === '5y') pts = 400;
+
+  const series = synthesize(base, pts);
+  const labels = series.map(s => s.t);
+  const data = series.map(s => s.v);
+  createChart(labels, data);
+  if (mode === 'live') startLive();
 }
 
-function createChart(labels=[],data=[]){
-  const ctx=document.getElementById('chart').getContext('2d');
-  if(chart) chart.destroy();
-  chart=new Chart(ctx,{
-    type:'line',
-    data:{labels,datasets:[{
-      label:'Harga Emas Antam (IDR/gr)',
-      data,
-      borderColor:'#007aff',
-      backgroundColor:'rgba(0,122,255,0.1)',
-      borderWidth:2,
-      tension:0.3,
-      fill:true,
-      pointRadius:0
-    }]},
-    options:{
-      responsive:true,
-      maintainAspectRatio:false,
-      plugins:{legend:{display:false}},
-      scales:{
-        x:{ticks:{color:'#555'}},
-        y:{ticks:{color:'#555',callback:v=>idrFmt.format(v)}}
+function createChart(labels = [], data = []) {
+  const ctx = document.getElementById('chart').getContext('2d');
+  if (chart) chart.destroy();
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Harga Emas (IDR)',
+        data,
+        borderColor: '#007aff',
+        backgroundColor: 'rgba(0,122,255,0.1)',
+        borderWidth: 2,
+        tension: 0.3,
+        fill: true,
+        pointRadius: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#555' } },
+        y: { ticks: { color: '#555', callback: v => idrFmt.format(v) } }
       }
     }
   });
 }
 
-(async()=>{await loadData();})();
+(async () => {
+  createChart([], []);
+  await loadData();
+})();
 </script>
 </body>
 </html>
