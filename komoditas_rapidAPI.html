@@ -109,7 +109,7 @@
       justify-content: flex-end;
       align-items: center;
     }
-    select {
+    select, input[type="number"] {
       background: #fff;
       color: #333;
       border: 1px solid #ccc;
@@ -197,22 +197,34 @@
     <footer>Data sumber: <b>API Ninjas - Commodity Price (Gold)</b></footer>
 
     <div class="side">
-      <label style="font-size:0.85rem;color:#555;">Interval Live</label>
+      <label>Interval</label>
       <select id="intervalSelect">
-        <option value="60">Per 60 Detik</option>
-        <option value="1">Per 1 Detik (Berlangganan)</option>
+        <option value="60">60 Detik</option>
+        <option value="1">1 Detik (Premium)</option>
       </select>
-      <button id="refreshBtn" class="btn">Refresh Sekarang</button>
+      <input type="number" id="alarmPrice" placeholder="Target IDR" style="width:130px;">
+      <button id="setAlarmBtn" class="btn">Set Alarm</button>
+      <button id="testAlarm" class="btn">🔊 Test Suara</button>
+      <button id="refreshBtn" class="btn">Refresh</button>
     </div>
   </div>
 
-  <!-- Modal -->
+  <!-- Modal Premium -->
   <div class="modal" id="modal">
     <div class="modal-content">
       <h2>💎 Mode Premium</h2>
-      <p>Fitur pembaruan setiap 1 detik hanya tersedia untuk pengguna berlangganan.</p>
-      <p>Biaya berlangganan: <b>Rp 70.000</b> / Bulan</p>
+      <p>Pembaruan per 1 detik hanya tersedia untuk pengguna berlangganan.</p>
+      <p>Harga langganan: <b>Rp 700.000</b></p>
       <button class="close-btn" id="closeModal">Tutup</button>
+    </div>
+  </div>
+
+  <!-- Modal Alarm -->
+  <div class="modal" id="alarmModal">
+    <div class="modal-content">
+      <h2>🚨 Alarm Harga!</h2>
+      <p>Harga emas telah menyentuh target yang kamu tetapkan 🎉</p>
+      <button class="close-btn" id="closeAlarm">Matikan Alarm</button>
     </div>
   </div>
 
@@ -220,171 +232,125 @@
 const API_KEY = '1uJVdDfwabtrO+OjWyRHhA==hUYLyqpcRg8JyLHC';
 const COMMODITY_URL = 'https://api.api-ninjas.com/v1/commodityprice?name=gold';
 const RATE_URL = 'https://api.api-ninjas.com/v1/exchangerate?pair=USD_IDR';
+const idrFmt = new Intl.NumberFormat('id-ID', { style:'currency', currency:'IDR', maximumFractionDigits:0 });
 
-let chart = null;
-let timer = null;
-let mode = 'live';
-let lastUSD = null;
-let currentInterval = 60;
-
+let chart = null, timer = null, mode = 'live', currentInterval = 60;
+let lastUSD = null, alarmTarget = null, alarmAudio = new Audio("https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg");
 const elUSD = document.getElementById('lastPrice');
 const elIDR = document.getElementById('converted');
 const elAsOf = document.getElementById('asOf');
-const intervalSelect = document.getElementById('intervalSelect');
 const modal = document.getElementById('modal');
+const alarmModal = document.getElementById('alarmModal');
 const closeModal = document.getElementById('closeModal');
-const idrFmt = new Intl.NumberFormat('id-ID', { style:'currency', currency:'IDR', maximumFractionDigits:0 });
+const closeAlarm = document.getElementById('closeAlarm');
 
-// Tombol range waktu
-document.querySelectorAll('.btn-group .btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.btn-group .btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    mode = btn.dataset.range;
-    stopLive();
-    loadData();
-  });
-});
+document.getElementById('testAlarm').onclick = () => alarmAudio.play();
 
-// Event refresh manual
-document.getElementById('refreshBtn').addEventListener('click', () => loadData());
-
-// Interval selector
-intervalSelect.addEventListener('change', () => {
-  const val = parseInt(intervalSelect.value);
-  if (val === 1) {
-    // tampilkan modal berlangganan
-    modal.style.display = 'flex';
+document.getElementById('setAlarmBtn').onclick = () => {
+  const val = parseFloat(document.getElementById('alarmPrice').value);
+  if (val && val > 0) {
+    alarmTarget = val;
+    alert("✅ Alarm diset pada harga: " + idrFmt.format(val));
   } else {
-    currentInterval = val;
-    startLive();
+    alert("Masukkan angka valid untuk alarm harga!");
   }
-});
+};
 
-// Modal close
-closeModal.addEventListener('click', () => {
+document.getElementById('intervalSelect').onchange = e => {
+  const val = parseInt(e.target.value);
+  if (val === 1) modal.style.display = 'flex';
+  else { currentInterval = val; startLive(); }
+};
+
+closeModal.onclick = () => {
   modal.style.display = 'none';
-  intervalSelect.value = "60"; // reset ke 60 detik
+  document.getElementById('intervalSelect').value = "60";
   currentInterval = 60;
   startLive();
+};
+
+closeAlarm.onclick = () => {
+  alarmModal.style.display = 'none';
+  alarmAudio.pause();
+  alarmAudio.currentTime = 0;
+};
+
+document.getElementById('refreshBtn').onclick = () => loadData();
+document.querySelectorAll('.btn-group .btn').forEach(btn=>{
+  btn.onclick=()=>{
+    document.querySelectorAll('.btn-group .btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    mode=btn.dataset.range; stopLive(); loadData();
+  };
 });
 
-function startLive(){
-  stopLive();
-  timer = setInterval(fetchLatest, currentInterval * 1000);
-}
-function stopLive(){
-  if(timer) clearInterval(timer);
-}
+function startLive(){ stopLive(); timer=setInterval(fetchLatest, currentInterval*1000); }
+function stopLive(){ if(timer) clearInterval(timer); }
 
-async function fetchRateUSDToIDR(){
+async function fetchRate(){
   try {
-    const res = await fetch(RATE_URL, { headers: { 'X-Api-Key': API_KEY } });
-    const j = await res.json();
-    return j.rate || 16000;
-  } catch {
-    return 16000;
-  }
+    const r=await fetch(RATE_URL,{headers:{'X-Api-Key':API_KEY}});
+    const j=await r.json(); return j.rate||16000;
+  } catch { return 16000; }
 }
 
 async function fetchLatest(){
   try {
-    const res = await fetch(COMMODITY_URL, { headers: { 'X-Api-Key': API_KEY } });
-    const j = await res.json();
-    if (j && j.price) {
-      const usd = j.price;
-      const ts = j.updated ? new Date(j.updated * 1000) : new Date();
-      lastUSD = usd;
+    const r=await fetch(COMMODITY_URL,{headers:{'X-Api-Key':API_KEY}});
+    const j=await r.json();
+    if(j && j.price){
+      const usd=j.price, ts=new Date();
+      lastUSD=usd; const rate=await fetchRate(); const idr=usd*rate;
+      elUSD.textContent=usd.toFixed(2)+" USD";
+      elIDR.textContent=idrFmt.format(idr);
+      elAsOf.textContent=ts.toLocaleTimeString('id-ID');
 
-      const rate = await fetchRateUSDToIDR();
-      const idr = usd * rate;
+      if(alarmTarget && idr>=alarmTarget){
+        alarmModal.style.display='flex';
+        alarmAudio.loop=true;
+        alarmAudio.play();
+        alarmTarget=null;
+      }
 
-      elUSD.textContent = usd.toFixed(2) + " USD";
-      elIDR.textContent = idrFmt.format(idr);
-      elAsOf.textContent = ts.toLocaleString('id-ID');
-
-      if (chart) {
+      if(chart){
         chart.data.labels.push(ts.toLocaleTimeString('id-ID'));
         chart.data.datasets[0].data.push(idr);
-        if (chart.data.labels.length > 100) {
-          chart.data.labels.shift();
-          chart.data.datasets[0].data.shift();
-        }
+        if(chart.data.labels.length>100){chart.data.labels.shift();chart.data.datasets[0].data.shift();}
         chart.update('none');
       }
     }
-  } catch (e) {
-    console.warn('fetchLatest error:', e);
-  }
+  }catch(e){console.warn(e);}
 }
 
-function synthesize(base, points) {
-  const arr = [];
-  const now = Date.now();
-  let p = base;
-  for (let i = points - 1; i >= 0; i--) {
-    const delta = (Math.random() - 0.5) * 0.02;
-    p *= (1 + delta);
-    const t = new Date(now - i * 3600 * 1000);
-    arr.push({ t: t.toLocaleTimeString('id-ID'), v: p });
-  }
-  return arr;
+function synthesize(base,n){
+  const arr=[],now=Date.now(); let p=base;
+  for(let i=n-1;i>=0;i--){p*=(1+(Math.random()-0.5)*0.02);
+    arr.push({t:new Date(now-i*3600*1000).toLocaleTimeString('id-ID'),v:p});
+  } return arr;
 }
 
 async function loadData(){
-  stopLive();
-  await fetchLatest();
-  const base = lastUSD ? lastUSD * await fetchRateUSDToIDR() : 1000000;
-  let pts = 60;
-  if (mode === '1d') pts = 96;
-  else if (mode === '1w') pts = 140;
-  else if (mode === '1m') pts = 200;
-  else if (mode === '1y') pts = 300;
-  else if (mode === '5y') pts = 400;
-
-  const series = synthesize(base, pts);
-  const labels = series.map(s => s.t);
-  const data = series.map(s => s.v);
-  createChart(labels, data);
-  if (mode === 'live') startLive();
+  stopLive(); await fetchLatest();
+  const base=lastUSD?(lastUSD*await fetchRate()):1000000;
+  let pts=60;
+  if(mode==='1d')pts=96; else if(mode==='1w')pts=140; else if(mode==='1m')pts=200;
+  else if(mode==='1y')pts=300; else if(mode==='5y')pts=400;
+  const s=synthesize(base,pts); const lbl=s.map(x=>x.t), dat=s.map(x=>x.v);
+  createChart(lbl,dat); if(mode==='live')startLive();
 }
 
-function createChart(labels = [], data = []) {
-  const ctx = document.getElementById('chart').getContext('2d');
-  if (chart) chart.destroy();
-  chart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [{
-        label: 'Harga Emas (IDR)',
-        data,
-        borderColor: '#007aff',
-        backgroundColor: 'rgba(0,122,255,0.1)',
-        borderWidth: 2,
-        tension: 0.3,
-        fill: true,
-        pointRadius: 0
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { ticks: { color: '#555' } },
-        y: { ticks: { color: '#555', callback: v => idrFmt.format(v) } }
-      }
-    }
+function createChart(labels=[],data=[]){
+  const ctx=document.getElementById('chart').getContext('2d');
+  if(chart)chart.destroy();
+  chart=new Chart(ctx,{type:'line',data:{
+    labels,datasets:[{label:'Harga Emas (IDR)',data,borderColor:'#007aff',
+    backgroundColor:'rgba(0,122,255,0.1)',borderWidth:2,tension:0.3,fill:true,pointRadius:0}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+    scales:{x:{ticks:{color:'#555'}},y:{ticks:{color:'#555',callback:v=>idrFmt.format(v)}}}}
   });
 }
 
-// init
-(async () => {
-  createChart([], []);
-  await loadData();
-})();
+(async()=>{createChart([],[]);await loadData();})();
 </script>
 </body>
 </html>
-
