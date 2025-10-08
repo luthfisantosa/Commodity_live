@@ -22,7 +22,7 @@
   }
   .card {
     background-color: #ffffffcc;
-    backdrop-filter: blur(12px);
+    backdrop-filter: blur(10px);
     border-radius: 20px;
     box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     padding: 25px;
@@ -55,6 +55,17 @@
     font-size: 16px;
     margin-top: 10px;
   }
+  .alarm {
+    margin-top: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  input[type=number] {
+    padding: 6px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+  }
   .notice {
     background: #fff3cd;
     color: #856404;
@@ -62,53 +73,6 @@
     border-radius: 8px;
     margin-top: 10px;
     display: none;
-  }
-
-  /* --- Alarm Card Styling --- */
-  .alarm-card {
-    background-color: #fafafa;
-    border-radius: 14px;
-    padding: 15px;
-    margin-top: 20px;
-    box-shadow: inset 0 0 5px rgba(0,0,0,0.05);
-  }
-  .alarm-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-weight: 600;
-    font-size: 15px;
-    color: #007aff;
-    margin-bottom: 10px;
-  }
-  .alarm-body {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-  .alarm-body input[type=number] {
-    flex: 1;
-    padding: 8px;
-    border-radius: 10px;
-    border: 1px solid #ccc;
-    min-width: 120px;
-  }
-  .alarm-body select {
-    padding: 8px;
-    border-radius: 10px;
-    border: 1px solid #ccc;
-  }
-  .alarm-actions {
-    display: flex;
-    gap: 8px;
-  }
-  .alarm-status {
-    text-align: center;
-    margin-top: 10px;
-    font-size: 14px;
-    color: #555;
   }
 </style>
 </head>
@@ -134,20 +98,16 @@
       <button onclick="closeNotice()">Tutup</button>
     </div>
 
-    <div class="alarm-card">
-      <div class="alarm-header">🔔 Pengingat Harga (Price Alert)</div>
-      <div class="alarm-body">
-        <input type="number" id="alarmValue" placeholder="Masukkan target (Rp)">
-        <select id="alarmCondition">
-          <option value="above">≥ Target</option>
-          <option value="below">≤ Target</option>
-        </select>
-        <div class="alarm-actions">
-          <button onclick="setAlarm()">Set</button>
-          <button onclick="testAlarm()">Tes 🔊</button>
-        </div>
-      </div>
-      <div id="alarmStatus" class="alarm-status"></div>
+    <div class="alarm">
+      <label>Set Alarm Harga:</label>
+      <input type="number" id="alarmValue" placeholder="Masukkan harga target (Rp)">
+      <select id="alarmCondition">
+        <option value="above">≥ Target</option>
+        <option value="below">≤ Target</option>
+      </select>
+      <button onclick="setAlarm()">🔔 Set Alarm</button>
+      <button onclick="testAlarm()">🔊 Tes Suara</button>
+      <div id="alarmStatus"></div>
     </div>
   </div>
 
@@ -174,7 +134,7 @@ async function fetchPrice() {
     const priceUSD = data[0]?.price || 0;
     const priceIDR = priceUSD * 16000;
     const now = new Date().toLocaleTimeString();
-
+    
     document.getElementById("price").innerText = "Rp " + priceIDR.toLocaleString("id-ID");
     document.getElementById("time").innerText = now;
 
@@ -194,8 +154,7 @@ async function fetchPrice() {
       ) {
         document.getElementById("alarmSound").play();
         alert(`🎯 Harga telah mencapai target: Rp ${priceIDR.toLocaleString("id-ID")}`);
-        alarmValue = null;
-        document.getElementById("alarmStatus").innerText = "✅ Alarm telah aktif sebelumnya dan kini dinonaktifkan.";
+        alarmValue = null; // reset alarm
       }
     }
   } catch (err) {
@@ -258,8 +217,7 @@ function setAlarm() {
     alert("Masukkan harga target terlebih dahulu!");
     return;
   }
-  document.getElementById("alarmStatus").innerText = 
-    `🔔 Alarm aktif untuk ${alarmCondition === "above" ? "≥" : "≤"} Rp ${alarmValue.toLocaleString("id-ID")}`;
+  document.getElementById("alarmStatus").innerText = `🔔 Alarm aktif untuk ${alarmCondition === "above" ? "≥" : "≤"} Rp ${alarmValue.toLocaleString("id-ID")}`;
 }
 
 function testAlarm() {
